@@ -1,0 +1,2562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#2d6a4f">
+    <title>Global Explorer</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        :root {
+            --primary-green: #2d6a4f;
+            --primary-green-light: #40916c;
+            --accent-orange: #d97706;
+            --accent-orange-hover: #b45309;
+            --bg-white: #ffffff;
+            --bg-glass: rgba(255, 255, 255, 0.95);
+            --text-dark: #1f2937;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --font-main: 'Inter', sans-serif;
+            --danger: #dc2626;
+            --warning: #f59e0b;
+            --success: #16a34a;
+            --info: #2563eb;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-main);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #f3f4f6;
+            min-height: 100vh;
+            color: var(--text-dark);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .app-wrapper {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background-color: #f3f4f6;
+            box-shadow: 0 0 40px rgba(0,0,0,0.05);
+        }
+
+        .hero-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 40vh;
+            min-height: 300px;
+            background-image: url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=1600');
+            background-size: cover;
+            background-position: center;
+            z-index: 0;
+        }
+
+        .hero-bg::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.7) 100%);
+        }
+
+        .content-scroll {
+            position: relative;
+            z-index: 1;
+            flex: 1;
+            padding: 20px;
+            padding-bottom: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+            color: white;
+        }
+
+        .header-left {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .logo-title-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-circle {
+            width: 48px;
+            height: 48px;
+            background-color: #e0f2fe;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .logo-circle i { color: var(--primary-green); width: 28px; height: 28px; }
+
+        .app-title {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .app-subtitle {
+            font-size: 14px;
+            font-weight: 400;
+            line-height: 1.4;
+            max-width: 300px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            opacity: 0.9;
+        }
+
+        .header-right { display: flex; gap: 8px; align-items: center; }
+
+        .btn-install {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            backdrop-filter: blur(4px);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .btn-install:hover { background: rgba(255, 255, 255, 0.3); }
+
+        .profile-icon {
+            width: 38px;
+            height: 38px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+            cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        
+        .profile-icon i { color: white; width: 20px; height: 20px; }
+
+        .glass-card {
+            background: var(--bg-glass);
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: var(--card-shadow);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .top-widgets {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+        }
+
+        .widget-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 14px;
+            color: var(--text-dark);
+        }
+
+        .widget-title i { width: 20px; height: 20px; color: var(--primary-green); }
+        .widget-title.ai-title i { color: var(--accent-orange); }
+
+        .search-inputs { display: flex; gap: 8px; margin-bottom: 14px; }
+
+        .input-group {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 14px;
+            color: var(--text-dark);
+            transition: border-color 0.2s;
+        }
+        
+        .input-group:focus-within { border-color: var(--primary-green); }
+
+        .input-group i {
+            width: 16px;
+            height: 16px;
+            color: var(--text-muted);
+            margin-right: 8px;
+        }
+        
+        .input-group input {
+            border: none;
+            outline: none;
+            width: 100%;
+            font-size: 14px;
+            color: var(--text-dark);
+            background: transparent;
+        }
+
+        .input-group.near-me {
+            flex: 0.5;
+            cursor: pointer;
+            justify-content: center;
+            font-weight: 500;
+            color: var(--primary-green);
+        }
+        
+        .input-group.near-me:hover { background: #f0fdf4; }
+        .input-group.near-me i { color: var(--primary-green); }
+
+        .recent-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+        }
+
+        .recent-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .pill-sm {
+            background: #f3f4f6;
+            border: 1px solid var(--border-color);
+            padding: 6px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-dark);
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        
+        .pill-sm:hover { background: #e5e7eb; }
+        .pill-sm.active { background: var(--primary-green); color: white; border-color: var(--primary-green); }
+
+        .btn-search {
+            width: 100%;
+            background: var(--primary-green);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .btn-search:hover { background: var(--primary-green-light); }
+        .btn-search:disabled { opacity: 0.7; cursor: wait; }
+
+        .ai-dropdowns {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .ai-dropdown {
+            display: flex;
+            align-items: center;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 14px;
+            color: var(--text-dark);
+            cursor: pointer;
+            justify-content: space-between;
+        }
+        
+        .ai-dropdown-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            width: 100%;
+        }
+
+        .ai-dropdown i { width: 16px; height: 16px; color: var(--text-muted); }
+        
+        .ai-dropdown input, .ai-dropdown select {
+            border: none;
+            background: transparent;
+            font-size: 14px;
+            font-family: inherit;
+            color: var(--text-dark);
+            outline: none;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .btn-ai {
+            width: 100%;
+            background: linear-gradient(135deg, var(--accent-orange) 0%, #ea580c 100%);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            margin-bottom: 8px;
+            box-shadow: 0 2px 4px rgba(217, 119, 6, 0.3);
+            transition: transform 0.1s;
+        }
+        
+        .btn-ai:active { transform: scale(0.98); }
+
+        .ai-footer {
+            font-size: 10px;
+            text-align: center;
+            color: var(--text-muted);
+            line-height: 1.2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+        
+        .ai-footer i { width: 12px; height: 12px; color: #a855f7; }
+
+        .ai-output {
+            display: none;
+            margin-top: 10px;
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px;
+        }
+        
+        .ai-output textarea {
+            width: 100%;
+            height: 100px;
+            border: none;
+            background: transparent;
+            resize: none;
+            font-size: 12px;
+            font-family: monospace;
+            color: var(--text-dark);
+            outline: none;
+            margin-bottom: 8px;
+        }
+        
+        .ai-output-actions { display: flex; gap: 8px; }
+        
+        .btn-small {
+            flex: 1;
+            padding: 6px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: white;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+        
+        .btn-small i { width: 14px; height: 14px; }
+        
+        .btn-small.primary {
+            background: var(--primary-green);
+            color: white;
+            border-color: var(--primary-green);
+        }
+
+        .filters-card {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .filter-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .filter-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 100px;
+        }
+
+        .filter-label i { width: 18px; height: 18px; color: var(--text-dark); }
+
+        .filter-pills {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            flex: 1;
+        }
+
+        .pill-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: white;
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .pill-toggle i { width: 16px; height: 16px; }
+
+        .pill-toggle.active {
+            background: var(--primary-green);
+            color: white;
+            border-color: var(--primary-green);
+        }
+
+        .radius-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-top: 4px;
+        }
+
+        .radius-slider-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .slider {
+            flex: 1;
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: #d1d5db;
+            border-radius: 2px;
+            outline: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: white;
+            border: 2px solid var(--primary-green);
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .slider-val { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+
+        .troubleshoot-toggle {
+            font-size: 12px;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 8px;
+            text-decoration: underline;
+            user-select: none;
+        }
+        
+        .troubleshoot-content {
+            display: none;
+            margin-top: 8px;
+            padding: 8px;
+            background: #f8fafc;
+            border-radius: 8px;
+            font-size: 12px;
+            color: var(--text-dark);
+            line-height: 1.4;
+        }
+        
+        .troubleshoot-content.show { display: block; }
+
+        .map-wrapper {
+            position: relative;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 16px;
+        }
+        
+        #map { height: 350px; width: 100%; z-index: 1; }
+
+        .map-custom-controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 400;
+            display: flex;
+            gap: 8px;
+        }
+
+        .map-btn {
+            background: rgba(255, 255, 255, 0.95);
+            border: none;
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            cursor: pointer;
+        }
+        
+        .map-btn i { width: 14px; height: 14px; }
+
+        .map-attribution-logo {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            z-index: 400;
+            background: rgba(255,255,255,0.9);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 700;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .weather-strip {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            z-index: 400;
+            background: rgba(45, 106, 79, 0.9);
+            backdrop-filter: blur(8px);
+            border-radius: 12px;
+            padding: 10px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+            font-size: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .weather-item { display: flex; align-items: center; gap: 8px; }
+        
+        .weather-item.temp { flex-direction: column; align-items: flex-start; gap: 0; }
+        
+        .weather-item.temp .main-temp {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 18px;
+            font-weight: 700;
+        }
+        
+        .weather-item.temp i { color: #fbbf24; width: 24px; height: 24px; }
+        
+        .feels-like { font-size: 10px; color: #d1d5db; margin-left: 28px; }
+
+        .weather-divider { width: 1px; height: 24px; background: rgba(255,255,255,0.3); }
+
+        .weather-item i { width: 16px; height: 16px; color: white; }
+        
+        .weather-item div { display: flex; flex-direction: column; line-height: 1.2; }
+        
+        .weather-item .label { font-size: 9px; color: #d1d5db; }
+        .weather-item .value { font-weight: 600; font-size: 12px; }
+
+        .ad-banner {
+            position: relative;
+            height: 80px;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 16px;
+            box-shadow: var(--card-shadow);
+            background: #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px dashed #9ca3af;
+        }
+
+        .ad-tag {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: rgba(255,255,255,0.9);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .ad-placeholder-text {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-decoration: none;
+            cursor: pointer;
+        }
+        
+        .ad-placeholder-text:hover { color: var(--text-dark); }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding: 0 4px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .inline-loader {
+            display: inline-flex;
+            color: var(--text-muted);
+        }
+        
+        .inline-loader i {
+            animation: spin 1s linear infinite;
+            width: 14px;
+            height: 14px;
+        }
+
+        .see-all {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-dark);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .see-all:hover { color: var(--primary-green); }
+
+        .nearby-scroll {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+            scrollbar-width: thin;
+        }
+        
+        .nearby-scroll::-webkit-scrollbar { height: 6px; }
+        .nearby-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+        .nearby-card {
+            flex: 0 0 auto;
+            width: 160px;
+            height: 100px;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: var(--card-shadow);
+            cursor: pointer;
+            background: #e5e7eb;
+        }
+
+        .nearby-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s;
+        }
+        
+        .nearby-card:hover img { transform: scale(1.05); }
+
+        .nearby-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 8px;
+            background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .nearby-overlay i { width: 16px; height: 16px; }
+
+        .shortlist-filters {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            padding: 0 4px 8px 4px;
+        }
+        
+        .shortlist-filters .pill-sm {
+            font-size: 10px;
+            padding: 4px 8px;
+        }
+
+        .shortlist-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .shortlist-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: white;
+            padding: 12px;
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .shortlist-card:hover { transform: translateY(-2px); }
+
+        .shortlist-img {
+            width: 80px;
+            height: 50px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+        
+        .shortlist-img i { width: 24px; height: 24px; }
+
+        .shortlist-info { flex: 1; min-width: 0; }
+
+        .shortlist-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .shortlist-subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .star-icon {
+            width: 28px;
+            height: 28px;
+            color: #fbbf24;
+            cursor: pointer;
+            transition: color 0.2s;
+            border: none;
+            background: none;
+            padding: 0;
+            flex-shrink: 0;
+        }
+        
+        .star-icon.inactive { color: #d1d5db; }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: var(--bg-white);
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 0;
+            border-top: 1px solid var(--border-color);
+            z-index: 1000;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+        }
+        
+        @media (min-width: 1200px) {
+            .bottom-nav {
+                max-width: 1200px;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            position: relative;
+            transition: color 0.2s;
+            background: none;
+            border: none;
+        }
+
+        .nav-item.active { color: var(--primary-green); }
+
+        .nav-item i { width: 24px; height: 24px; color: currentColor; }
+        .nav-item.active i { color: var(--primary-green); }
+
+        .nav-item.active::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            width: 30px;
+            height: 3px;
+            background: var(--primary-green);
+            border-radius: 2px;
+        }
+        
+        .nav-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: var(--accent-orange);
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 2px solid white;
+        }
+
+        .custom-poi-icon {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            color: white;
+            font-size: 14px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            border: 2px solid white;
+        }
+        .poi-food { background-color: var(--accent-orange); }
+        .poi-attraction { background-color: var(--primary-green); }
+        .poi-essential { background-color: #2563eb; }
+
+        .leaflet-popup-content-wrapper {
+            border-radius: 8px;
+            font-family: var(--font-main);
+        }
+        .leaflet-popup-content {
+            margin: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            min-width: 180px;
+        }
+        
+        .leaflet-popup-content .popup-name {
+            font-weight: 600;
+            margin-bottom: 6px;
+            font-size: 14px;
+            color: var(--text-dark);
+        }
+        
+        .leaflet-popup-content .popup-coords {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            font-family: monospace;
+        }
+        
+        .leaflet-popup-content .popup-w3w {
+            font-size: 12px;
+            color: var(--text-dark);
+            background: #f3f4f6;
+            padding: 4px 8px;
+            border-radius: 6px;
+            margin: 6px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 4px;
+            cursor: pointer;
+            font-family: monospace;
+            word-break: break-all;
+        }
+        
+        .leaflet-popup-content .popup-w3w:hover { background: #e5e7eb; }
+        
+        .leaflet-popup-content .popup-action {
+            display: flex;
+            gap: 4px;
+            margin-top: 6px;
+        }
+        
+        .leaflet-popup-content .popup-action button {
+            flex: 1;
+            padding: 4px 8px;
+            font-size: 11px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+        
+        .leaflet-popup-content .popup-action button.primary {
+            background: var(--primary-green);
+            color: white;
+            border-color: var(--primary-green);
+        }
+
+        .save-btn {
+            margin-top: 8px;
+            padding: 4px 8px;
+            background: var(--primary-green);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .save-btn.saved { background: var(--text-muted); }
+
+        .toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.85);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 2000;
+            opacity: 0;
+            transition: opacity 0.3s, bottom 0.3s;
+            pointer-events: none;
+            max-width: 90vw;
+            text-align: center;
+        }
+        
+        .toast.show { opacity: 1; }
+        .toast.success { background: rgba(22, 163, 74, 0.95); }
+        .toast.error { background: rgba(220, 38, 38, 0.95); }
+        .toast.warning { background: rgba(245, 158, 11, 0.95); }
+        .toast.info { background: rgba(37, 99, 235, 0.95); }
+        
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 1500;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            backdrop-filter: blur(4px);
+        }
+        
+        .modal-overlay.show { display: flex; }
+        
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .modal-close {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            color: var(--text-muted);
+            border-radius: 4px;
+        }
+        
+        .modal-close:hover { background: #f3f4f6; }
+        .modal-close i { width: 20px; height: 20px; }
+        
+        .modal-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            padding-right: 30px;
+            color: var(--text-dark);
+        }
+        
+        .modal-section {
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .modal-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        
+        .modal-section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+        }
+        
+        .modal-input {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: var(--font-main);
+            margin-bottom: 6px;
+        }
+        
+        .modal-input:focus {
+            outline: none;
+            border-color: var(--primary-green);
+        }
+        
+        .modal-help {
+            font-size: 11px;
+            color: var(--text-muted);
+            line-height: 1.4;
+            margin-bottom: 8px;
+        }
+        
+        .modal-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .modal-checkbox input {
+            accent-color: var(--primary-green);
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+        
+        .detail-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 10px;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 13px;
+            gap: 8px;
+        }
+        
+        .detail-row .detail-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        
+        .detail-row .detail-value {
+            font-family: monospace;
+            font-size: 12px;
+            color: var(--text-dark);
+            text-align: right;
+            word-break: break-all;
+            flex: 1;
+        }
+        
+        .detail-copy-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            color: var(--text-muted);
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+        
+        .detail-copy-btn:hover { background: #e5e7eb; color: var(--primary-green); }
+        .detail-copy-btn i { width: 16px; height: 16px; }
+        
+        .modal-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+        }
+        
+        .modal-btn {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: white;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            color: var(--text-dark);
+        }
+        
+        .modal-btn.primary {
+            background: var(--primary-green);
+            color: white;
+            border-color: var(--primary-green);
+        }
+        
+        .modal-btn.primary:hover { background: var(--primary-green-light); }
+        
+        .modal-btn i { width: 16px; height: 16px; }
+
+        /* Focus styles for accessibility */
+        button:focus-visible,
+        [role="button"]:focus-visible,
+        .pill-toggle:focus-visible,
+        .pill-sm:focus-visible,
+        input:focus-visible,
+        select:focus-visible,
+        textarea:focus-visible,
+        .modal-input:focus-visible {
+            outline: 2px solid var(--primary-green);
+            outline-offset: 2px;
+        }
+        
+        .visually-hidden {
+            position: absolute !important;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0,0,0,0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .spin { animation: spin 1s linear infinite; }
+    </style>
+    <link rel="manifest" id="manifest-placeholder">
+</head>
+<body>
+
+<div class="app-wrapper">
+    <div class="hero-bg"></div>
+
+    <div class="content-scroll">
+        
+        <header class="app-header">
+            <div class="header-left">
+                <div class="logo-title-row">
+                    <div class="logo-circle">
+                        <i data-lucide="mountain-snow" aria-hidden="true"></i>
+                    </div>
+                    <h1 class="app-title">Global Explorer</h1>
+                </div>
+                <p class="app-subtitle">Discover walks, rides, attractions and hidden gems worldwide</p>
+            </div>
+            <div class="header-right">
+                <button class="btn-install" id="pwa-install-btn" style="display: none;" aria-label="Install App">
+                    <i data-lucide="smartphone" aria-hidden="true"></i> Install
+                </button>
+                <button class="profile-icon" id="settings-btn" onclick="openSettings()" aria-label="Settings">
+                    <i data-lucide="settings" aria-hidden="true"></i>
+                </button>
+            </div>
+        </header>
+
+        <div class="top-widgets">
+            <div class="glass-card">
+                <div class="widget-title">
+                    <i data-lucide="search" aria-hidden="true"></i>
+                    Search Anywhere
+                </div>
+                
+                <div class="search-inputs">
+                    <div class="input-group">
+                        <i data-lucide="map-pin" aria-hidden="true"></i>
+                        <input type="text" id="search-input" placeholder="Search city, trail, POI..." aria-label="Search input">
+                    </div>
+                    <div class="input-group near-me" onclick="getLocation()" role="button" tabindex="0" aria-label="Search near my location">
+                        <i data-lucide="locate-fixed" aria-hidden="true"></i>
+                        Near Me
+                    </div>
+                </div>
+
+                <div class="recent-label">Recent Searches:</div>
+                <div class="recent-pills" id="recent-searches">
+                    <span class="pill-sm" role="button" tabindex="0" onclick="quickSearch('Loch Ness')">Loch Ness</span>
+                    <span class="pill-sm" role="button" tabindex="0" onclick="quickSearch('Edinburgh')">Edinburgh</span>
+                    <span class="pill-sm" role="button" tabindex="0" onclick="quickSearch('Ben Nevis')">Ben Nevis</span>
+                </div>
+
+                <button class="btn-search" onclick="performSearch()" aria-label="Perform search">
+                    <i data-lucide="search" aria-hidden="true"></i>
+                    Search
+                </button>
+            </div>
+
+            <div class="glass-card">
+                <div class="widget-title ai-title">
+                    <i data-lucide="sparkles" aria-hidden="true"></i>
+                    AI Adventure Planner
+                </div>
+                
+                <div class="ai-dropdowns">
+                    <div class="ai-dropdown">
+                        <div class="ai-dropdown-left">
+                            <i data-lucide="calendar" aria-hidden="true"></i>
+                            <input type="date" id="ai-start-date" aria-label="Start date">
+                        </div>
+                    </div>
+                    <div class="ai-dropdown">
+                        <div class="ai-dropdown-left">
+                            <i data-lucide="clock" aria-hidden="true"></i>
+                            <select id="ai-days" aria-label="Number of days">
+                                <option value="1">1 Day</option>
+                                <option value="2">2 Days</option>
+                                <option value="3" selected>3 Days</option>
+                                <option value="5">5 Days</option>
+                                <option value="7">7 Days</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="ai-dropdown">
+                        <div class="ai-dropdown-left">
+                            <i data-lucide="map" aria-hidden="true"></i>
+                            <select id="ai-style" aria-label="Travel style">
+                                <option value="Hiking & Walking">Hiking & Walking</option>
+                                <option value="Cycling & Biking">Cycling & Biking</option>
+                                <option value="Road Trip">Road Trip</option>
+                                <option value="Family Friendly">Family Friendly</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn-ai" onclick="generateAIPrompt()" aria-label="Generate itinerary prompt">
+                    Generate Itinerary <i data-lucide="wand-2" aria-hidden="true"></i>
+                </button>
+                
+                <div class="ai-footer">
+                    <i data-lucide="bot" aria-hidden="true"></i>
+                    Generates AI Itinerary for ChatGPT,<br>Copilot and DeepSeek
+                </div>
+                
+                <div class="ai-output" id="ai-output">
+                    <label for="ai-prompt-text" class="visually-hidden">Generated prompt</label>
+                    <textarea id="ai-prompt-text" readonly></textarea>
+                    <div class="ai-output-actions">
+                        <button class="btn-small primary" onclick="copyPrompt(event)" aria-label="Copy prompt">
+                            <i data-lucide="copy" aria-hidden="true"></i> Copy
+                        </button>
+                        <button class="btn-small" onclick="downloadPrompt()" aria-label="Download prompt">
+                            <i data-lucide="download" aria-hidden="true"></i> Download
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-card filters-card">
+            <div class="filter-row">
+                <div class="filter-label">
+                    <i data-lucide="layers" aria-hidden="true"></i>
+                    Routes:
+                </div>
+                <div class="filter-pills" id="route-pills">
+                    <div class="pill-toggle active" data-layer="hiking" role="button" tabindex="0" aria-pressed="true" onclick="toggleRouteLayer(this)">
+                        <i data-lucide="footprints" aria-hidden="true"></i>
+                        Walking
+                    </div>
+                    <div class="pill-toggle" data-layer="cycling" role="button" tabindex="0" aria-pressed="false" onclick="toggleRouteLayer(this)">
+                        <i data-lucide="bike" aria-hidden="true"></i>
+                        Cycling
+                    </div>
+                    <div class="pill-toggle" data-layer="mtb" role="button" tabindex="0" aria-pressed="false" onclick="toggleRouteLayer(this)">
+                        <i data-lucide="mountain" aria-hidden="true"></i>
+                        MTB
+                    </div>
+                </div>
+            </div>
+
+            <div class="filter-row">
+                <div class="filter-label">Travel Mode:</div>
+                <div class="filter-pills" id="travel-mode-pills">
+                    <div class="pill-toggle active" data-mode="walking" role="button" tabindex="0" aria-pressed="true" onclick="setTravelMode(this)">
+                        <i data-lucide="footprints" aria-hidden="true"></i>
+                        Walking
+                    </div>
+                    <div class="pill-toggle" data-mode="cycling" role="button" tabindex="0" aria-pressed="false" onclick="setTravelMode(this)">
+                        <i data-lucide="bike" aria-hidden="true"></i>
+                        Cycling
+                    </div>
+                    <div class="pill-toggle" data-mode="driving" role="button" tabindex="0" aria-pressed="false" onclick="setTravelMode(this)">
+                        <i data-lucide="car" aria-hidden="true"></i>
+                        Driving
+                    </div>
+                    <div class="pill-toggle" data-mode="motorhome" role="button" tabindex="0" aria-pressed="false" onclick="setTravelMode(this)">
+                        <i data-lucide="truck" aria-hidden="true"></i>
+                        Motorhome
+                    </div>
+                </div>
+            </div>
+
+            <div class="radius-row">
+                <div class="filter-label">Radius: <span id="radius-val">15 km</span></div>
+                <div class="radius-slider-container">
+                    <input type="range" min="1" max="50" value="15" class="slider" id="radius-slider" aria-label="Search radius">
+                    <span class="slider-val">1</span>
+                    <span class="slider-val">50 km</span>
+                </div>
+            </div>
+            
+            <div class="troubleshoot-toggle" onclick="toggleTroubleshoot()" role="button" tabindex="0">
+                <i data-lucide="help-circle" style="width:14px;height:14px;" aria-hidden="true"></i> Route not showing?
+            </div>
+            <div class="troubleshoot-content" id="troubleshoot-content">
+                <strong>Tips:</strong><br>
+                • Zoom in further. Trail layers only appear at zoom levels 12+.<br>
+                • Try a different route type. Not all areas have MTB or Cycling trails.<br>
+                • Check your internet connection.<br>
+                • Data provided by Waymarked Trails. Some local paths may be unmapped.
+            </div>
+        </div>
+
+        <div class="map-wrapper">
+            <div id="map"></div>
+            
+            <div class="map-custom-controls">
+                <button class="map-btn" onclick="locateUser()" aria-label="Recenter map">
+                    <i data-lucide="locate" aria-hidden="true"></i> Recenter
+                </button>
+            </div>
+
+            <div class="map-attribution-logo">
+                <i data-lucide="map" style="width:14px;height:14px;" aria-hidden="true"></i> OpenStreetMap
+            </div>
+
+            <div class="weather-strip">
+                <div class="weather-item temp">
+                    <div class="main-temp">
+                        <i data-lucide="sun" id="weather-icon" aria-hidden="true"></i>
+                        <span id="weather-temp">--°C</span>
+                    </div>
+                    <div class="feels-like" id="weather-feels">Fetching...</div>
+                </div>
+                
+                <div class="weather-divider"></div>
+                
+                <div class="weather-item">
+                    <i data-lucide="wind" aria-hidden="true"></i>
+                    <div>
+                        <span class="label">Wind</span>
+                        <span class="value" id="weather-wind">-- mph</span>
+                    </div>
+                </div>
+
+                <div class="weather-divider"></div>
+
+                <div class="weather-item">
+                    <i data-lucide="sunrise" aria-hidden="true"></i>
+                    <div>
+                        <span class="label">Sunrise</span>
+                        <span class="value" id="weather-sunrise">--:--</span>
+                    </div>
+                </div>
+
+                <div class="weather-divider"></div>
+
+                <div class="weather-item">
+                    <i data-lucide="sunset" aria-hidden="true"></i>
+                    <div>
+                        <span class="label">Sunset</span>
+                        <span class="value" id="weather-sunset">--:--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="ad-banner">
+            <div class="ad-tag">Advertisement</div>
+            <a href="#" class="ad-placeholder-text" onclick="showToast('Ad space available.', 'info'); return false;">Ad Placeholder</a>
+        </div>
+
+        <div class="section-header">
+            <div class="section-title">
+                Nearby Places
+                <span class="inline-loader" id="nearby-loading" style="display:none;" aria-hidden="true">
+                    <i data-lucide="loader-2"></i>
+                </span>
+            </div>
+            <button class="see-all" onclick="downloadOfflineGuide()" aria-label="Download offline guide">
+                <i data-lucide="download" style="width:16px;height:16px;" aria-hidden="true"></i> Offline Guide
+            </button>
+        </div>
+        <div class="nearby-scroll">
+            <div class="nearby-card">
+                <img src="https://images.unsplash.com/photo-1549417229-aa67d3263c09?auto=format&fit=crop&q=80&w=500" alt="Attractions" loading="lazy">
+                <div class="nearby-overlay">
+                    <i data-lucide="castle" aria-hidden="true"></i>
+                    Attractions (<span id="count-attractions">0</span>)
+                </div>
+            </div>
+            <div class="nearby-card">
+                <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=500" alt="Food" loading="lazy">
+                <div class="nearby-overlay">
+                    <i data-lucide="utensils" aria-hidden="true"></i>
+                    Food & Drink (<span id="count-food">0</span>)
+                </div>
+            </div>
+            <div class="nearby-card">
+                <img src="https://images.unsplash.com/photo-1510798831971-661eb04b3739?auto=format&fit=crop&q=80&w=500" alt="Essentials" loading="lazy">
+                <div class="nearby-overlay">
+                    <i data-lucide="tent" aria-hidden="true"></i>
+                    Essentials (<span id="count-essentials">0</span>)
+                </div>
+            </div>
+        </div>
+
+        <div class="section-header" style="margin-top: 8px;">
+            <div class="section-title">Your Shortlist</div>
+            <a href="#" class="see-all" onclick="scrollToShortlist(); return false;">See all <i data-lucide="arrow-right" style="width:16px;height:16px;" aria-hidden="true"></i></a>
+        </div>
+        <div class="shortlist-filters" id="shortlist-filters" role="group" aria-label="Filter shortlist">
+            <span class="pill-sm active" data-filter="all" role="button" tabindex="0" onclick="setShortlistFilter('all', this)">All</span>
+            <span class="pill-sm" data-filter="attraction" role="button" tabindex="0" onclick="setShortlistFilter('attraction', this)">Attractions</span>
+            <span class="pill-sm" data-filter="food" role="button" tabindex="0" onclick="setShortlistFilter('food', this)">Food</span>
+            <span class="pill-sm" data-filter="essential" role="button" tabindex="0" onclick="setShortlistFilter('essential', this)">Essentials</span>
+            <span class="pill-sm" id="sort-toggle" role="button" tabindex="0" onclick="toggleShortlistSort()">Newest ↓</span>
+        </div>
+        <div class="shortlist-container" id="shortlist-container"></div>
+
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+        <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="modal-title-text">
+            <button class="modal-close" onclick="closeModal()" aria-label="Close modal">
+                <i data-lucide="x" aria-hidden="true"></i>
+            </button>
+            <h2 class="modal-title" id="modal-title-text"></h2>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <nav class="bottom-nav" role="navigation" aria-label="Main navigation">
+        <button class="nav-item active" onclick="switchTab(this)" aria-label="Map tab">
+            <i data-lucide="map" aria-hidden="true"></i>
+            <span>Map</span>
+        </button>
+        <button class="nav-item" onclick="switchTab(this)" aria-label="Explore tab">
+            <i data-lucide="compass" aria-hidden="true"></i>
+            <span>Explore</span>
+        </button>
+        <button class="nav-item" onclick="switchTab(this)" aria-label="Planner tab">
+            <i data-lucide="calendar-days" aria-hidden="true"></i>
+            <span>Planner</span>
+        </button>
+        <button class="nav-item" onclick="switchTab(this)" aria-label="Saved places tab">
+            <i data-lucide="star" aria-hidden="true"></i>
+            <span>Saved</span>
+            <div class="nav-badge" id="saved-badge">0</div>
+        </button>
+    </nav>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+<script>
+/* ==========================================================================
+   GLOBAL EXPLORER — MODULAR ARCHITECTURE
+   Sections: Utils / Security / Cache / Toast / Storage / W3W / Map /
+             Weather / POIs / Search / AI / Offline / UI
+   ========================================================================== */
+
+/* ---------- 1. INIT ---------- */
+lucide.createIcons();
+
+/* ---------- 2. UTILS & SECURITY ---------- */
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    const div = document.createElement('div');
+    div.textContent = String(str);
+    return div.innerHTML;
+}
+
+function escapeAttr(str) {
+    return String(str).replace(/['"\\<>&]/g, c => ({
+        "'": '&#39;', '"': '&quot;', '\\': '&#92;', '<': '&lt;', '>': '&gt;', '&': '&amp;'
+    }[c]));
+}
+
+function debounce(fn, delay) {
+    let t;
+    return function(...args) {
+        clearTimeout(t);
+        t = setTimeout(() => fn.apply(this, args), delay);
+    };
+}
+
+function throttle(fn, delay) {
+    let last = 0;
+    return function(...args) {
+        const now = Date.now();
+        if (now - last >= delay) {
+            last = now;
+            fn.apply(this, args);
+        }
+    };
+}
+
+function uuid() {
+    return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+}
+
+/* ---------- 3. CACHE (localStorage with TTL) ---------- */
+const CACHE_PREFIX = 'ge_cache_';
+const SEARCH_TTL = 24 * 60 * 60 * 1000;      // 24 hours
+const GEOCODE_TTL = 30 * 24 * 60 * 60 * 1000; // 30 days
+const W3W_TTL = 30 * 24 * 60 * 60 * 1000;     // 30 days
+
+function cacheGet(key, ttl) {
+    try {
+        const raw = localStorage.getItem(CACHE_PREFIX + key);
+        if (!raw) return null;
+        const { t, d } = JSON.parse(raw);
+        if (Date.now() - t > ttl) {
+            localStorage.removeItem(CACHE_PREFIX + key);
+            return null;
+        }
+        return d;
+    } catch (e) { return null; }
+}
+
+function cacheSet(key, data) {
+    try {
+        localStorage.setItem(CACHE_PREFIX + key, JSON.stringify({ t: Date.now(), d: data }));
+    } catch (e) { /* quota exceeded - ignore */ }
+}
+
+/* ---------- 4. TOASTS ---------- */
+let toastTimer;
+function showToast(message, type = 'info', duration = 2500) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = 'toast show ' + type;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+        toast.classList.remove('show');
+    }, duration);
+}
+
+/* ---------- 5. STORAGE / SHORTLIST ---------- */
+const STORAGE_KEY = 'ge_shortlist_v2';
+let shortlist = [];
+let shortlistFilter = 'all';
+let shortlistSort = 'newest';
+
+function loadShortlist() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        shortlist = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(shortlist)) shortlist = [];
+    } catch (e) { shortlist = []; }
+}
+
+function saveShortlist() {
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(shortlist));
+    } catch (e) { showToast('Storage full — could not save.', 'error'); }
+}
+
+function addToShortlist(place) {
+    if (shortlist.some(p => p.id === place.id)) return;
+    shortlist.push({
+        id: place.id,
+        name: place.name,
+        lat: place.lat,
+        lon: place.lon,
+        type: place.type || 'location',
+        savedDate: new Date().toISOString()
+    });
+    saveShortlist();
+    renderShortlist();
+    showToast('Saved to shortlist!', 'success');
+}
+
+function removeFromShortlist(id) {
+    shortlist = shortlist.filter(p => p.id !== id);
+    saveShortlist();
+    renderShortlist();
+    showToast('Removed from shortlist', 'info');
+}
+
+function toggleSavePlace(id, name, lat, lon, type) {
+    if (shortlist.some(p => p.id === id)) {
+        removeFromShortlist(id);
+    } else {
+        addToShortlist({ id, name, lat, lon, type });
+    }
+    const btn = document.getElementById('save-btn-' + id);
+    if (btn) {
+        const isSaved = shortlist.some(p => p.id === id);
+        btn.className = 'save-btn' + (isSaved ? ' saved' : '');
+        btn.textContent = isSaved ? '⭐ Saved' : '⭐ Save Place';
+    }
+}
+
+function setShortlistFilter(filter, el) {
+    shortlistFilter = filter;
+    document.querySelectorAll('#shortlist-filters .pill-sm[data-filter]').forEach(p => p.classList.remove('active'));
+    if (el) el.classList.add('active');
+    renderShortlist();
+}
+
+function toggleShortlistSort() {
+    shortlistSort = shortlistSort === 'newest' ? 'oldest' : 'newest';
+    document.getElementById('sort-toggle').textContent = shortlistSort === 'newest' ? 'Newest ↓' : 'Oldest ↑';
+    renderShortlist();
+}
+
+function renderShortlist() {
+    const container = document.getElementById('shortlist-container');
+    const badge = document.getElementById('saved-badge');
+    if (!container) return;
+    badge.textContent = shortlist.length;
+
+    let filtered = [...shortlist];
+    if (shortlistFilter !== 'all') {
+        filtered = filtered.filter(p => p.type === shortlistFilter);
+    }
+    filtered.sort((a, b) => {
+        const ta = new Date(a.savedDate || 0).getTime();
+        const tb = new Date(b.savedDate || 0).getTime();
+        return shortlistSort === 'newest' ? tb - ta : ta - tb;
+    });
+
+    if (filtered.length === 0) {
+        container.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--text-muted); font-size: 13px;">${shortlist.length === 0 ? 'No places saved yet. Click a POI on the map to save it.' : 'No places match this filter.'}</div>`;
+        return;
+    }
+
+    container.innerHTML = '';
+    filtered.forEach(place => {
+        const card = document.createElement('div');
+        card.className = 'shortlist-card';
+        card.setAttribute('role', 'button');
+        card.setAttribute('tabindex', '0');
+        card.innerHTML = `
+            <div class="shortlist-img"><i data-lucide="map-pin" aria-hidden="true"></i></div>
+            <div class="shortlist-info">
+                <div class="shortlist-title">${escapeHtml(place.name)}</div>
+                <div class="shortlist-subtitle">${place.lat.toFixed(4)}, ${place.lon.toFixed(4)}</div>
+            </div>
+            <button class="star-icon" aria-label="Remove from shortlist" onclick="event.stopPropagation(); removeFromShortlist('${escapeAttr(place.id)}')">
+                <i data-lucide="star" style="fill: #fbbf24;" aria-hidden="true"></i>
+            </button>
+        `;
+        card.onclick = () => openPlaceDetail(place);
+        container.appendChild(card);
+    });
+    lucide.createIcons();
+    attachKeyboardHandlers(container);
+}
+
+function scrollToShortlist() {
+    document.getElementById('shortlist-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ---------- 6. WHAT3WORDS ---------- */
+let w3wApiKey = localStorage.getItem('ge_w3w_key') || '';
+let showCoords = localStorage.getItem('ge_show_coords') !== 'false';
+let showW3W = localStorage.getItem('ge_show_w3w') !== 'false';
+
+async function getW3W(lat, lon) {
+    if (!w3wApiKey) return null;
+    const cacheKey = `w3w_${lat.toFixed(4)}_${lon.toFixed(4)}`;
+    const cached = cacheGet(cacheKey, W3W_TTL);
+    if (cached) return cached;
+    try {
+        const res = await fetch(`https://api.what3words.com/v3/convert-to3word?coordinates=${lat},${lon}&key=${encodeURIComponent(w3wApiKey)}`);
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (data && data.words) {
+            cacheSet(cacheKey, data.words);
+            return data.words;
+        }
+    } catch (e) { console.warn('w3w lookup failed', e); }
+    return null;
+}
+
+function formatW3W(words) {
+    return words ? '///' + words : '';
+}
+
+async function copyText(text, label) {
+    try {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(text);
+        } else {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+        }
+        showToast((label || 'Copied') + ' to clipboard', 'success');
+    } catch (e) {
+        showToast('Could not copy. Please copy manually.', 'error');
+    }
+}
+
+/* ---------- 7. TRAVEL MODES ---------- */
+const TRAVEL_MODES = {
+    walking: {
+        label: 'Walking',
+        routeLayer: 'hiking',
+        overpass: {
+            attractions: ['tourism=attraction', 'tourism=viewpoint', 'tourism=alpine_hut', 'tourism=wilderness_hut'],
+            food: ['amenity=restaurant', 'amenity=cafe', 'amenity=fast_food'],
+            essentials: ['amenity=drinking_water', 'amenity=toilets', 'amenity=shelter', 'amenity=parking']
+        }
+    },
+    cycling: {
+        label: 'Cycling',
+        routeLayer: 'cycling',
+        overpass: {
+            attractions: ['tourism=attraction', 'tourism=viewpoint'],
+            food: ['amenity=cafe', 'amenity=restaurant', 'amenity=fast_food'],
+            essentials: ['amenity=bicycle_repair_station', 'amenity=bicycle_rental', 'shop=bicycle', 'amenity=drinking_water']
+        }
+    },
+    driving: {
+        label: 'Driving',
+        routeLayer: null,
+        overpass: {
+            attractions: ['tourism=attraction', 'tourism=viewpoint'],
+            food: ['amenity=restaurant', 'amenity=fast_food'],
+            essentials: ['amenity=fuel', 'amenity=charging_station', 'amenity=parking']
+        }
+    },
+    motorhome: {
+        label: 'Motorhome',
+        routeLayer: null,
+        overpass: {
+            attractions: ['tourism=attraction', 'tourism=caravan_site', 'tourism=camp_site'],
+            food: ['amenity=restaurant', 'amenity=fast_food'],
+            essentials: ['amenity=fuel', 'amenity=charging_station', 'amenity=water_point', 'amenity=sanitary_dump_station']
+        }
+    }
+};
+
+let currentTravelMode = 'walking';
+
+/* ---------- 8. MAP ---------- */
+const defaultLat = 55.9533;
+const defaultLon = -3.1883;
+
+const map = L.map('map', { zoomControl: true }).setView([defaultLat, defaultLon], 11);
+
+const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+}).addTo(map);
+
+const routeLayers = {
+    hiking: L.tileLayer('https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png', { maxZoom: 18, opacity: 0.8 }),
+    cycling: L.tileLayer('https://tile.waymarkedtrails.org/cycling/{z}/{x}/{y}.png', { maxZoom: 18, opacity: 0.8 }),
+    mtb: L.tileLayer('https://tile.waymarkedtrails.org/mtb/{z}/{x}/{y}.png', { maxZoom: 18, opacity: 0.8 })
+};
+
+routeLayers.hiking.addTo(map);
+
+// Marker cluster for POIs
+const poiCluster = L.markerClusterGroup({
+    maxClusterRadius: 50,
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false
+}).addTo(map);
+
+let currentMarker = L.marker([defaultLat, defaultLon]).addTo(map).bindPopup('Initial Location');
+
+/* ---------- 9. WEATHER (with apparent temp) ---------- */
+const WMO_ICON = {
+    0: 'sun', 1: 'cloud-sun', 2: 'cloud-sun', 3: 'cloud',
+    45: 'cloud-fog', 48: 'cloud-fog',
+    51: 'cloud-drizzle', 53: 'cloud-drizzle', 55: 'cloud-drizzle',
+    61: 'cloud-rain', 63: 'cloud-rain', 65: 'cloud-rain',
+    71: 'snowflake', 73: 'snowflake', 75: 'snowflake', 77: 'snowflake',
+    80: 'cloud-showers-heavy', 81: 'cloud-showers-heavy', 82: 'cloud-showers-heavy',
+    95: 'cloud-lightning', 96: 'cloud-lightning', 99: 'cloud-lightning'
+};
+
+async function fetchWeather(lat, lon) {
+    try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m&daily=sunrise,sunset&timezone=auto&windspeed_unit=mph`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data && data.current) {
+            const c = data.current;
+            const temp = Math.round(c.temperature_2m);
+            const feels = Math.round(c.apparent_temperature);
+            const wind = Math.round(c.wind_speed_10m);
+            document.getElementById('weather-temp').textContent = `${temp}°C`;
+            document.getElementById('weather-feels').textContent = `Feels like ${feels}°C`;
+            document.getElementById('weather-wind').textContent = `${wind} mph`;
+
+            if (data.daily && data.daily.sunrise && data.daily.sunrise[0]) {
+                const sr = new Date(data.daily.sunrise[0]).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const ss = new Date(data.daily.sunset[0]).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                document.getElementById('weather-sunrise').textContent = sr;
+                document.getElementById('weather-sunset').textContent = ss;
+            }
+
+            const iconEl = document.getElementById('weather-icon');
+            const code = c.weather_code;
+            const iconName = WMO_ICON[code] || 'cloud';
+            iconEl.setAttribute('data-lucide', iconName);
+            iconEl.innerHTML = '';
+            lucide.createIcons();
+        }
+    } catch (e) {
+        console.error('Weather fetch error:', e);
+        document.getElementById('weather-temp').textContent = 'N/A';
+        document.getElementById('weather-feels').textContent = 'Offline';
+    }
+}
+
+/* ---------- 10. POIs (Overpass) ---------- */
+let globalPois = [];
+
+function buildOverpassQuery(lat, lon, radiusM) {
+    const mode = TRAVEL_MODES[currentTravelMode] || TRAVEL_MODES.walking;
+    const lines = [];
+    Object.values(mode.overpass).flat().forEach(tag => {
+        const [k, v] = tag.split('=');
+        lines.push(`node["${k}"="${v}"](around:${radiusM},${lat},${lon});`);
+        lines.push(`way["${k}"="${v}"](around:${radiusM},${lat},${lon});`);
+    });
+    return `[out:json][timeout:25];(${lines.join('')});out center 150;`;
+}
+
+async function fetchNearbyPlaces(lat, lon) {
+    const loading = document.getElementById('nearby-loading');
+    loading.style.display = 'inline-flex';
+    poiCluster.clearLayers();
+    globalPois = [];
+
+    const counts = { attraction: 0, food: 0, essential: 0 };
+    document.getElementById('count-attractions').textContent = '0';
+    document.getElementById('count-food').textContent = '0';
+    document.getElementById('count-essentials').textContent = '0';
+
+    const radiusKm = parseInt(document.getElementById('radius-slider').value, 10) || 15;
+    const radius = radiusKm * 1000;
+    const query = buildOverpassQuery(lat, lon, radius);
+
+    const endpoints = [
+        'https://overpass-api.de/api/interpreter',
+        'https://overpass.kumi.systems/api/interpreter',
+        'https://lz4.overpass-api.de/api/interpreter'
+    ];
+
+    let data = null;
+    for (const url of endpoints) {
+        try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 20000);
+            const res = await fetch(url, { method: 'POST', body: query, signal: controller.signal });
+            clearTimeout(timeout);
+            if (res.ok) { data = await res.json(); break; }
+        } catch (e) {
+            console.warn('Overpass endpoint failed:', url, e.message);
+        }
+    }
+
+    if (!data) {
+        loading.style.display = 'none';
+        document.getElementById('count-attractions').textContent = '—';
+        document.getElementById('count-food').textContent = '—';
+        document.getElementById('count-essentials').textContent = '—';
+        showToast('Could not load nearby places. Overpass servers busy — try again.', 'error', 4000);
+        return;
+    }
+
+    const mode = TRAVEL_MODES[currentTravelMode] || TRAVEL_MODES.walking;
+    const buckets = mode.overpass;
+    const classify = (tags) => {
+        if (!tags) return null;
+        for (const t of buckets.attractions) {
+            const [k, v] = t.split('=');
+            if (tags[k] === v) return 'attraction';
+        }
+        for (const t of buckets.food) {
+            const [k, v] = t.split('=');
+            if (tags[k] === v) return 'food';
+        }
+        for (const t of buckets.essentials) {
+            const [k, v] = t.split('=');
+            if (tags[k] === v) return 'essential';
+        }
+        return null;
+    };
+
+    const iconFor = { attraction: '🏰', food: '🍽️', essential: '⛺' };
+    const classFor = { attraction: 'poi-attraction', food: 'poi-food', essential: 'poi-essential' };
+
+    data.elements.forEach(el => {
+        const tags = el.tags || {};
+        const type = classify(tags);
+        if (!type) return;
+        const lat = el.lat || (el.center && el.center.lat);
+        const lon = el.lon || (el.center && el.center.lon);
+        if (!lat || !lon) return;
+
+        counts[type]++;
+        const placeName = tags.name || tags['name:en'] || 'Unnamed Location';
+        const id = String(el.id || el.type + '-' + lat + '-' + lon);
+        globalPois.push({ id, name: placeName, lat, lon, type });
+
+        const icon = L.divIcon({
+            className: 'custom-div-icon',
+            html: `<div class="custom-poi-icon ${classFor[type]}">${iconFor[type]}</div>`,
+            iconSize: [30, 30],
+            iconAnchor: [15, 15]
+        });
+
+        const marker = L.marker([lat, lon], { icon });
+        const isSaved = shortlist.some(p => p.id === id);
+        const btnClass = isSaved ? 'save-btn saved' : 'save-btn';
+        const btnText = isSaved ? '⭐ Saved' : '⭐ Save Place';
+        const coordsLine = showCoords ? `<div class="popup-coords">${lat.toFixed(5)}, ${lon.toFixed(5)}</div>` : '';
+        const w3wLine = showW3W && w3wApiKey ? `<div class="popup-w3w" onclick="lookupW3W(${lat},${lon},this)">Tap to get 3-word address</div>` : '';
+
+        marker.bindPopup(`
+            <div class="popup-name">${escapeHtml(placeName)}</div>
+            ${coordsLine}
+            ${w3wLine}
+            <button id="save-btn-${escapeAttr(id)}" class="${btnClass}"
+                onclick="event.stopPropagation(); toggleSavePlace('${escapeAttr(id)}', '${escapeAttr(placeName)}', ${lat}, ${lon}, '${type}')">
+                ${btnText}
+            </button>
+        `);
+        poiCluster.addLayer(marker);
+    });
+
+    document.getElementById('count-attractions').textContent = counts.attraction;
+    document.getElementById('count-food').textContent = counts.food;
+    document.getElementById('count-essentials').textContent = counts.essential;
+    loading.style.display = 'none';
+    showToast(`Found ${data.elements.length} POIs near you`, 'info');
+}
+
+async function lookupW3W(lat, lon, el) {
+    el.textContent = 'Fetching...';
+    const words = await getW3W(lat, lon);
+    if (words) {
+        el.textContent = formatW3W(words);
+        el.onclick = () => copyText(formatW3W(words), 'what3words');
+        showToast('Tap again to copy', 'info');
+    } else {
+        el.textContent = 'Unavailable (set w3w key in settings)';
+        el.style.color = 'var(--text-muted)';
+    }
+}
+
+/* ---------- 11. SEARCH (Nominatim) ---------- */
+const btnSearchEl = document.querySelector('.btn-search');
+
+async function performSearch() {
+    const query = document.getElementById('search-input').value.trim();
+    if (!query) { showToast('Please enter a location.', 'warning'); return; }
+
+    const original = btnSearchEl.innerHTML;
+    btnSearchEl.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Searching...';
+    btnSearchEl.disabled = true;
+    lucide.createIcons();
+
+    const cacheKey = 'search_' + query.toLowerCase();
+    let results = cacheGet(cacheKey, SEARCH_TTL);
+
+    if (!results) {
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+            results = await res.json();
+            cacheSet(cacheKey, results);
+        } catch (e) {
+            showToast('Search failed — check connection.', 'error');
+            btnSearchEl.innerHTML = original;
+            btnSearchEl.disabled = false;
+            lucide.createIcons();
+            return;
+        }
+    }
+
+    if (results && results.length > 0) {
+        const r = results[0];
+        const lat = parseFloat(r.lat);
+        const lon = parseFloat(r.lon);
+
+        map.setView([lat, lon], 13);
+        if (currentMarker) map.removeLayer(currentMarker);
+        currentMarker = L.marker([lat, lon]).addTo(map).bindPopup(escapeHtml(r.display_name)).openPopup();
+        fetchWeather(lat, lon);
+        fetchNearbyPlaces(lat, lon);
+        addRecentSearch(query);
+    } else {
+        showToast('Location not found.', 'warning');
+    }
+
+    btnSearchEl.innerHTML = original;
+    btnSearchEl.disabled = false;
+    lucide.createIcons();
+}
+
+function addRecentSearch(query) {
+    const container = document.getElementById('recent-searches');
+    if (container.querySelector(`[data-q="${escapeAttr(query)}"]`)) return;
+    const pill = document.createElement('span');
+    pill.className = 'pill-sm';
+    pill.setAttribute('role', 'button');
+    pill.setAttribute('tabindex', '0');
+    pill.setAttribute('data-q', query);
+    pill.textContent = query;
+    pill.onclick = () => quickSearch(query);
+    container.prepend(pill);
+    attachKeyboardHandlers(container);
+}
+
+function quickSearch(q) {
+    document.getElementById('search-input').value = q;
+    performSearch();
+}
+
+function getLocation() {
+    if (!navigator.geolocation) { showToast('Geolocation not supported.', 'error'); return; }
+    showToast('Getting your location...', 'info');
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            const lat = pos.coords.latitude;
+            const lon = pos.coords.longitude;
+            map.setView([lat, lon], 14);
+            if (currentMarker) map.removeLayer(currentMarker);
+            currentMarker = L.marker([lat, lon]).addTo(map).bindPopup('You are here').openPopup();
+            fetchWeather(lat, lon);
+            fetchNearbyPlaces(lat, lon);
+        },
+        () => showToast('Could not get your location.', 'error')
+    );
+}
+
+function locateUser() { getLocation(); }
+
+/* ---------- 12. AI PLANNER ---------- */
+async function generateAIPrompt() {
+    const startDate = document.getElementById('ai-start-date').value;
+    const days = document.getElementById('ai-days').value;
+    const style = document.getElementById('ai-style').value;
+    const center = map.getCenter();
+
+    const btn = document.querySelector('.btn-ai');
+    const original = btn.innerHTML;
+    btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Generating...';
+    btn.disabled = true;
+    lucide.createIcons();
+
+    let locationStr = `${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}`;
+    const geoKey = `rev_${center.lat.toFixed(4)}_${center.lng.toFixed(4)}`;
+    const cachedGeo = cacheGet(geoKey, GEOCODE_TTL);
+    if (cachedGeo) {
+        locationStr = cachedGeo;
+    } else {
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${center.lat}&lon=${center.lng}`);
+            const data = await res.json();
+            if (data && data.display_name) {
+                locationStr = data.display_name;
+                cacheSet(geoKey, locationStr);
+            }
+        } catch (e) { /* fallback to coords */ }
+    }
+
+    let prompt = `Act as an expert outdoor travel planner and adventure guide.\n\n`;
+    prompt += `Create a detailed, day-by-day itinerary for a ${days}-day trip starting ${startDate || 'an upcoming date'}.\n`;
+    prompt += `Location: Near ${locationStr}.\n`;
+    prompt += `Travel Style: ${style}.\n`;
+    prompt += `Preferred Travel Mode: ${TRAVEL_MODES[currentTravelMode].label} (prioritize ${TRAVEL_MODES[currentTravelMode].label.toLowerCase()}-friendly places).\n\n`;
+    prompt += `Requirements:\n`;
+    prompt += `- Focus on outdoor activities, scenic walks, and hidden gems.\n`;
+    prompt += `- Include specific recommendations for breakfast, lunch, and dinner (prioritize local, highly-rated spots).\n`;
+    prompt += `- Suggest approximate travel times and distances between stops.\n`;
+    prompt += `- Provide alternatives for bad weather.\n`;
+    prompt += `- Format output in clean Markdown.`;
+
+    document.getElementById('ai-prompt-text').value = prompt;
+    const out = document.getElementById('ai-output');
+    out.style.display = 'block';
+    out.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    btn.innerHTML = original;
+    btn.disabled = false;
+    lucide.createIcons();
+}
+
+function copyPrompt(e) {
+    const text = document.getElementById('ai-prompt-text').value;
+    const btn = e.currentTarget;
+    const original = btn.innerHTML;
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => {
+            btn.innerHTML = '<i data-lucide="check"></i> Copied!';
+            lucide.createIcons();
+            showToast('Prompt copied', 'success');
+            setTimeout(() => { btn.innerHTML = original; lucide.createIcons(); }, 2000);
+        });
+    } else {
+        const ta = document.getElementById('ai-prompt-text');
+        ta.select();
+        document.execCommand('copy');
+        showToast('Prompt copied', 'success');
+    }
+}
+
+function downloadPrompt() {
+    const text = document.getElementById('ai-prompt-text').value;
+    if (!text) { showToast('Generate an itinerary first.', 'warning'); return; }
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Global_Explorer_Prompt.txt';
+    document.body.appendChild(a);
+    a.click();
+    URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    showToast('Prompt downloaded', 'success');
+}
+
+/* ---------- 13. OFFLINE GUIDE ---------- */
+async function downloadOfflineGuide() {
+    if (globalPois.length === 0 && shortlist.length === 0) {
+        showToast('Search a location first to gather data.', 'warning');
+        return;
+    }
+    const center = map.getCenter();
+    const mode = TRAVEL_MODES[currentTravelMode];
+    let text = `===========================================\n`;
+    text += `GLOBAL EXPLORER — OFFLINE GUIDE\n`;
+    text += `===========================================\n`;
+    text += `Generated: ${new Date().toLocaleString()}\n`;
+    text += `Travel Mode: ${mode.label}\n`;
+    text += `Center: ${center.lat.toFixed(5)}, ${center.lng.toFixed(5)}\n`;
+    text += `Radius: ${document.getElementById('radius-slider').value} km\n`;
+    text += `Weather: ${document.getElementById('weather-temp').textContent} (feels ${document.getElementById('weather-feels').textContent.replace('Feels like ', '')})\n\n`;
+
+    text += `--- SAVED SHORTLIST (${shortlist.length}) ---\n`;
+    if (shortlist.length === 0) {
+        text += `(Empty)\n`;
+    } else {
+        for (const p of shortlist) {
+            text += `\n📍 ${p.name}\n`;
+            text += `   Type: ${p.type}\n`;
+            text += `   Coordinates: ${p.lat.toFixed(5)}, ${p.lon.toFixed(5)}\n`;
+            if (w3wApiKey) {
+                const words = await getW3W(p.lat, p.lon);
+                if (words) text += `   what3words: ${formatW3W(words)}\n`;
+            }
+            text += `   Saved: ${new Date(p.savedDate).toLocaleString()}\n`;
+        }
+    }
+
+    text += `\n\n--- NEARBY POIs (${globalPois.length}) ---\n`;
+    if (globalPois.length === 0) {
+        text += `(None loaded)\n`;
+    } else {
+        for (const p of globalPois) {
+            text += `\n• ${p.name} (${p.type})\n`;
+            text += `  Coordinates: ${p.lat.toFixed(5)}, ${p.lon.toFixed(5)}\n`;
+        }
+    }
+
+    text += `\n\n--- END OF GUIDE ---\n`;
+
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Global_Explorer_Offline_Guide.txt';
+    document.body.appendChild(a);
+    a.click();
+    URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    showToast('Offline guide downloaded', 'success');
+}
+
+/* ---------- 14. MODAL & DETAIL VIEWS ---------- */
+function openModal(title, bodyHtml) {
+    document.getElementById('modal-title-text').textContent = title;
+    document.getElementById('modal-body').innerHTML = bodyHtml;
+    document.getElementById('modal-overlay').classList.add('show');
+    lucide.createIcons();
+    attachKeyboardHandlers(document.getElementById('modal-overlay'));
+}
+
+function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('show');
+}
+
+function openSettings() {
+    const body = `
+        <div class="modal-section">
+            <div class="modal-section-title">what3words API</div>
+            <div class="modal-help">
+                Get a free key at <a href="https://what3words.com/select-plan" target="_blank" rel="noopener">what3words.com</a>.
+                Without a key, coordinates will be shown instead.
+            </div>
+            <input type="text" class="modal-input" id="settings-w3w-key" placeholder="Your what3words API key" value="${escapeAttr(w3wApiKey)}">
+        </div>
+        <div class="modal-section">
+            <div class="modal-section-title">Display Preferences</div>
+            <label class="modal-checkbox">
+                <input type="checkbox" id="settings-show-coords" ${showCoords ? 'checked' : ''}>
+                Show coordinates
+            </label>
+            <label class="modal-checkbox">
+                <input type="checkbox" id="settings-show-w3w" ${showW3W ? 'checked' : ''}>
+                Show what3words (requires API key)
+            </label>
+        </div>
+        <div class="modal-actions">
+            <button class="modal-btn" onclick="closeModal()">Cancel</button>
+            <button class="modal-btn primary" onclick="saveSettings()">
+                <i data-lucide="check"></i> Save
+            </button>
+        </div>
+    `;
+    openModal('Settings', body);
+}
+
+function saveSettings() {
+    const key = document.getElementById('settings-w3w-key').value.trim();
+    w3wApiKey = key;
+    showCoords = document.getElementById('settings-show-coords').checked;
+    showW3W = document.getElementById('settings-show-w3w').checked;
+    localStorage.setItem('ge_w3w_key', w3wApiKey);
+    localStorage.setItem('ge_show_coords', String(showCoords));
+    localStorage.setItem('ge_show_w3w', String(showW3W));
+    closeModal();
+    showToast('Settings saved', 'success');
+}
+
+async function openPlaceDetail(place) {
+    const coordsLine = showCoords ? `
+        <div class="detail-row">
+            <span class="detail-label">Coords</span>
+            <span class="detail-value">${place.lat.toFixed(5)}, ${place.lon.toFixed(5)}</span>
+            <button class="detail-copy-btn" aria-label="Copy coordinates" onclick="copyText('${place.lat.toFixed(5)}, ${place.lon.toFixed(5)}', 'Coordinates')">
+                <i data-lucide="copy"></i>
+            </button>
+        </div>
+    ` : '';
+
+    const w3wSection = showW3W ? `
+        <div id="detail-w3w-section">
+            <div class="detail-row" id="detail-w3w-row">
+                <span class="detail-label">what3words</span>
+                <span class="detail-value" id="detail-w3w-value">Loading...</span>
+            </div>
+        </div>
+    ` : '';
+
+    const body = `
+        ${coordsLine}
+        ${w3wSection}
+        <div class="modal-actions">
+            <button class="modal-btn" onclick="focusOnPlace(${place.lat}, ${place.lon}, '${escapeAttr(place.name)}')">
+                <i data-lucide="map-pin"></i> View on Map
+            </button>
+            <button class="modal-btn primary" onclick="removeFromShortlist('${escapeAttr(place.id)}'); closeModal();">
+                <i data-lucide="trash-2"></i> Remove
+            </button>
+        </div>
+    `;
+    openModal(place.name, body);
+
+    if (showW3W) {
+        const words = await getW3W(place.lat, place.lon);
+        const valueEl = document.getElementById('detail-w3w-value');
+        if (!valueEl) return;
+        if (words) {
+            const w3wStr = formatW3W(words);
+            valueEl.innerHTML = `${escapeHtml(w3wStr)} <button class="detail-copy-btn" aria-label="Copy what3words" onclick="event.stopPropagation(); copyText('${escapeAttr(w3wStr)}', 'what3words')">
+                <i data-lucide="copy"></i>
+            </button>`;
+            lucide.createIcons();
+        } else {
+            valueEl.textContent = w3wApiKey ? 'Lookup failed' : 'Set API key in Settings';
+            valueEl.style.color = 'var(--text-muted)';
+        }
+    }
+}
+
+function focusOnPlace(lat, lon, name) {
+    closeModal();
+    map.setView([lat, lon], 15);
+    if (currentMarker) map.removeLayer(currentMarker);
+    currentMarker = L.marker([lat, lon]).addTo(map).bindPopup(escapeHtml(name)).openPopup();
+}
+
+/* ---------- 15. UI INTERACTIONS ---------- */
+function toggleRouteLayer(el) {
+    const layerName = el.getAttribute('data-layer');
+    const layer = routeLayers[layerName];
+    if (el.classList.contains('active')) {
+        map.removeLayer(layer);
+        el.classList.remove('active');
+        el.setAttribute('aria-pressed', 'false');
+    } else {
+        map.addLayer(layer);
+        el.classList.add('active');
+        el.setAttribute('aria-pressed', 'true');
+    }
+}
+
+function setTravelMode(el) {
+    document.querySelectorAll('#travel-mode-pills .pill-toggle').forEach(p => {
+        p.classList.remove('active');
+        p.setAttribute('aria-pressed', 'false');
+    });
+    el.classList.add('active');
+    el.setAttribute('aria-pressed', 'true');
+    currentTravelMode = el.getAttribute('data-mode');
+    showToast('Travel mode: ' + TRAVEL_MODES[currentTravelMode].label, 'info');
+    // Re-fetch POIs with new mode
+    const c = map.getCenter();
+    fetchNearbyPlaces(c.lat, c.lng);
+    // Optionally switch route layer
+    const targetLayer = TRAVEL_MODES[currentTravelMode].routeLayer;
+    if (targetLayer) {
+        const pill = document.querySelector(`#route-pills .pill-toggle[data-layer="${targetLayer}"]`);
+        if (pill && !pill.classList.contains('active')) toggleRouteLayer(pill);
+    }
+}
+
+function toggleTroubleshoot() {
+    document.getElementById('troubleshoot-content').classList.toggle('show');
+}
+
+function switchTab(el) {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    el.classList.add('active');
+    if (el.textContent.includes('Saved')) scrollToShortlist();
+}
+
+function attachKeyboardHandlers(root) {
+    const scope = root || document;
+    scope.querySelectorAll('[role="button"], .pill-toggle, .pill-sm, .input-group.near-me, .troubleshoot-toggle').forEach(el => {
+        if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
+        if (el._kbAttached) return;
+        el._kbAttached = true;
+        el.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                el.click();
+            }
+        });
+    });
+}
+
+/* ---------- 16. INIT WIRING ---------- */
+const radiusSlider = document.getElementById('radius-slider');
+const radiusVal = document.getElementById('radius-val');
+radiusSlider.addEventListener('input', () => {
+    radiusVal.textContent = radiusSlider.value + ' km';
+});
+radiusSlider.addEventListener('change', debounce(() => {
+    const c = map.getCenter();
+    fetchNearbyPlaces(c.lat, c.lng);
+}, 400));
+
+document.getElementById('ai-start-date').valueAsDate = new Date();
+loadShortlist();
+renderShortlist();
+attachKeyboardHandlers();
+
+// Throttled POI refresh on map move
+map.on('moveend', throttle(() => {
+    // Only auto-refresh if user has moved significantly - for now, do nothing automatic
+    // to avoid overwhelming Overpass. Manual refresh available via search.
+}, 3000));
+
+// Boot data
+fetchWeather(defaultLat, defaultLon);
+fetchNearbyPlaces(defaultLat, defaultLon);
+
+/* ---------- 17. PWA ---------- */
+const manifest = {
+    name: "Global Explorer",
+    short_name: "Explorer",
+    description: "Discover walks, rides, and hidden gems worldwide.",
+    start_url: ".",
+    display: "standalone",
+    background_color: "#f3f4f6",
+    theme_color: "#2d6a4f",
+    icons: [{
+        src: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9IiMyZDZhNGYiPjxwYXRoIGQ9Ik0xNCA2bC0zLjc1IDUgMi44NSAzLjgtMS42IDEuMkM5LjgxIDEzLjc1IDcgMTAgNyAxMGwtNiA4aDIyTDE0IDZ6Ii8+PC9zdmc+",
+        sizes: "192x192",
+        type: "image/svg+xml"
+    }]
+};
+const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+document.getElementById('manifest-placeholder').setAttribute('href', URL.createObjectURL(manifestBlob));
+
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    document.getElementById('pwa-install-btn').style.display = 'flex';
+});
+
+document.getElementById('pwa-install-btn').addEventListener('click', async () => {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') document.getElementById('pwa-install-btn').style.display = 'none';
+        deferredPrompt = null;
+    } else {
+        showToast('Use your browser menu → Add to Home Screen', 'info');
+    }
+});
+</script>
+</body>
+</html>
