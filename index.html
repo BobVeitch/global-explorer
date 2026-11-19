@@ -1427,7 +1427,7 @@
             <div class="radius-row">
                 <div class="filter-label">Radius: <span id="radius-val">15 km</span></div>
                 <div class="radius-slider-container">
-                    <input type="range" min="1" max="50" value="15" class="slider" id="radius-slider" aria-label="Search radius">
+                    <input type="range" min="1" max="10" value="15" class="slider" id="radius-slider" aria-label="Search radius">
                     <span class="slider-val">1</span>
                     <span class="slider-val">50 km</span>
                 </div>
@@ -1886,10 +1886,13 @@ const defaultLon = -3.1883;
 
 const map = L.map('map', { zoomControl: true }).setView([defaultLat, defaultLon], 11);
 
-const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-}).addTo(map);
+const osm = L.tileLayer(
+'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+{
+    maxZoom: 20,
+    attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+}
+).addTo(map);
 
 const routeLayers = {
     hiking: L.tileLayer('https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png', { maxZoom: 18, opacity: 0.8 }),
@@ -2500,7 +2503,7 @@ function attachKeyboardHandlers(root) {
 const radiusSlider = document.getElementById('radius-slider');
 const radiusVal = document.getElementById('radius-val');
 radiusSlider.addEventListener('input', () => {
-    radiusVal.textContent = radiusSlider.value + ' km';
+    radiusVal.textContent = radiusSlider.value="15" + ' km';
 });
 radiusSlider.addEventListener('change', debounce(() => {
     const c = map.getCenter();
@@ -2520,7 +2523,7 @@ map.on('moveend', throttle(() => {
 
 // Boot data
 fetchWeather(defaultLat, defaultLon);
-fetchNearbyPlaces(defaultLat, defaultLon);
+// fetchNearbyPlaces(defaultLat, defaultLon);
 
 /* ---------- 17. PWA ---------- */
 const manifest = {
