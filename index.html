@@ -1398,8 +1398,8 @@
             <div class="radius-row">
                 <div class="filter-label">Radius: <span id="radius-val">15 km</span></div>
                 <div class="radius-slider-container">
-                    <input type="range" min="1" max="50" value="15" class="slider" id="radius-slider" aria-label="Search radius">
-                    <span class="slider-val">1</span>
+                    <input type="range" min="3" max="50" value="15" class="slider" id="radius-slider" aria-label="Search radius">
+                    <span class="slider-val">3</span>
                     <span class="slider-val">50 km</span>
                 </div>
             </div>
@@ -1758,7 +1758,6 @@ function scrollToShortlist() {
 }
 
 /* ---------- 6. WHAT3WORDS ---------- */
-// Default API key — can be overridden in Settings
 const DEFAULT_W3W_KEY = '08Z3AD00';
 let w3wApiKey = localStorage.getItem('ge_w3w_key') || DEFAULT_W3W_KEY;
 let showCoords = localStorage.getItem('ge_show_coords') !== 'false';
@@ -1863,10 +1862,10 @@ const defaultLon = -3.1883;
 const map = L.map('map', { zoomControl: true }).setView([defaultLat, defaultLon], 11);
 
 const osm = L.tileLayer(
-    'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
     {
-        maxZoom: 20,
-        attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }
 ).addTo(map);
 
@@ -2139,18 +2138,45 @@ function quickSearch(q) {
     performSearch();
 }
 
-function getLocation() {
+async function getLocation() {
     if (!navigator.geolocation) { showToast('Geolocation not supported.', 'error'); return; }
     showToast('Getting your location...', 'info');
     navigator.geolocation.getCurrentPosition(
-        (pos) => {
+        async (pos) => {
             const lat = pos.coords.latitude;
             const lon = pos.coords.longitude;
             map.setView([lat, lon], 14);
             if (currentMarker) map.removeLayer(currentMarker);
-            currentMarker = L.marker([lat, lon]).addTo(map).bindPopup('You are here').openPopup();
+
+            // Build what3words line for the current location popup
+            let w3wHtml = '';
+            if (showW3W && w3wApiKey) {
+                w3wHtml = `<div class="popup-w3w" id="loc-w3w" onclick="lookupW3W(${lat},${lon},this)">Fetching 3-word address...</div>`;
+            }
+
+            currentMarker = L.marker([lat, lon]).addTo(map).bindPopup(`
+                <div class="popup-name">Your Location</div>
+                ${showCoords ? `<div class="popup-coords">${lat.toFixed(5)}, ${lon.toFixed(5)}</div>` : ''}
+                ${w3wHtml}
+            `).openPopup();
+
             fetchWeather(lat, lon);
             fetchNearbyPlaces(lat, lon);
+
+            // Auto-fetch what3words for the current location marker
+            if (showW3W && w3wApiKey) {
+                const words = await getW3W(lat, lon);
+                const el = document.getElementById('loc-w3w');
+                if (el) {
+                    if (words) {
+                        el.textContent = formatW3W(words);
+                        el.onclick = () => copyText(formatW3W(words), 'what3words');
+                    } else {
+                        el.textContent = 'Address unavailable';
+                        el.style.color = 'var(--text-muted)';
+                    }
+                }
+            }
         },
         () => showToast('Could not get your location.', 'error')
     );
