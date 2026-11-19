@@ -178,7 +178,6 @@
             align-items: center;
             backdrop-filter: blur(4px);
             cursor: pointer;
-            border: 1px solid rgba(255, 255, 255, 0.4);
         }
         
         .profile-icon i { color: white; width: 20px; height: 20px; }
@@ -979,32 +978,6 @@
         }
         
         .leaflet-popup-content .popup-w3w:hover { background: #e5e7eb; }
-        
-        .leaflet-popup-content .popup-action {
-            display: flex;
-            gap: 4px;
-            margin-top: 6px;
-        }
-        
-        .leaflet-popup-content .popup-action button {
-            flex: 1;
-            padding: 4px 8px;
-            font-size: 11px;
-            border-radius: 4px;
-            border: 1px solid var(--border-color);
-            background: white;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-        }
-        
-        .leaflet-popup-content .popup-action button.primary {
-            background: var(--primary-green);
-            color: white;
-            border-color: var(--primary-green);
-        }
 
         .save-btn {
             margin-top: 8px;
@@ -1048,7 +1021,6 @@
         .toast.warning { background: rgba(245, 158, 11, 0.95); }
         .toast.info { background: rgba(37, 99, 235, 0.95); }
         
-        /* Modal */
         .modal-overlay {
             position: fixed;
             inset: 0;
@@ -1230,7 +1202,6 @@
         
         .modal-btn i { width: 16px; height: 16px; }
 
-        /* Focus styles for accessibility */
         button:focus-visible,
         [role="button"]:focus-visible,
         .pill-toggle:focus-visible,
@@ -1427,7 +1398,7 @@
             <div class="radius-row">
                 <div class="filter-label">Radius: <span id="radius-val">15 km</span></div>
                 <div class="radius-slider-container">
-                    <input type="range" min="1" max="10" value="15" class="slider" id="radius-slider" aria-label="Search radius">
+                    <input type="range" min="1" max="50" value="15" class="slider" id="radius-slider" aria-label="Search radius">
                     <span class="slider-val">1</span>
                     <span class="slider-val">50 km</span>
                 </div>
@@ -1594,8 +1565,6 @@
 <script>
 /* ==========================================================================
    GLOBAL EXPLORER — MODULAR ARCHITECTURE
-   Sections: Utils / Security / Cache / Toast / Storage / W3W / Map /
-             Weather / POIs / Search / AI / Offline / UI
    ========================================================================== */
 
 /* ---------- 1. INIT ---------- */
@@ -1634,15 +1603,11 @@ function throttle(fn, delay) {
     };
 }
 
-function uuid() {
-    return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
-}
-
-/* ---------- 3. CACHE (localStorage with TTL) ---------- */
+/* ---------- 3. CACHE ---------- */
 const CACHE_PREFIX = 'ge_cache_';
-const SEARCH_TTL = 24 * 60 * 60 * 1000;      // 24 hours
-const GEOCODE_TTL = 30 * 24 * 60 * 60 * 1000; // 30 days
-const W3W_TTL = 30 * 24 * 60 * 60 * 1000;     // 30 days
+const SEARCH_TTL = 24 * 60 * 60 * 1000;
+const GEOCODE_TTL = 30 * 24 * 60 * 60 * 1000;
+const W3W_TTL = 30 * 24 * 60 * 60 * 1000;
 
 function cacheGet(key, ttl) {
     try {
@@ -1660,7 +1625,7 @@ function cacheGet(key, ttl) {
 function cacheSet(key, data) {
     try {
         localStorage.setItem(CACHE_PREFIX + key, JSON.stringify({ t: Date.now(), d: data }));
-    } catch (e) { /* quota exceeded - ignore */ }
+    } catch (e) { }
 }
 
 /* ---------- 4. TOASTS ---------- */
@@ -1887,11 +1852,11 @@ const defaultLon = -3.1883;
 const map = L.map('map', { zoomControl: true }).setView([defaultLat, defaultLon], 11);
 
 const osm = L.tileLayer(
-'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-{
-    maxZoom: 20,
-    attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
-}
+    'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+    {
+        maxZoom: 20,
+        attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+    }
 ).addTo(map);
 
 const routeLayers = {
@@ -1902,7 +1867,6 @@ const routeLayers = {
 
 routeLayers.hiking.addTo(map);
 
-// Marker cluster for POIs
 const poiCluster = L.markerClusterGroup({
     maxClusterRadius: 50,
     spiderfyOnMaxZoom: true,
@@ -1911,7 +1875,7 @@ const poiCluster = L.markerClusterGroup({
 
 let currentMarker = L.marker([defaultLat, defaultLon]).addTo(map).bindPopup('Initial Location');
 
-/* ---------- 9. WEATHER (with apparent temp) ---------- */
+/* ---------- 9. WEATHER ---------- */
 const WMO_ICON = {
     0: 'sun', 1: 'cloud-sun', 2: 'cloud-sun', 3: 'cloud',
     45: 'cloud-fog', 48: 'cloud-fog',
@@ -1958,7 +1922,7 @@ async function fetchWeather(lat, lon) {
     }
 }
 
-/* ---------- 10. POIs (Overpass) ---------- */
+/* ---------- 10. POIs ---------- */
 let globalPois = [];
 
 function buildOverpassQuery(lat, lon, radiusM) {
@@ -2096,7 +2060,7 @@ async function lookupW3W(lat, lon, el) {
     }
 }
 
-/* ---------- 11. SEARCH (Nominatim) ---------- */
+/* ---------- 11. SEARCH ---------- */
 const btnSearchEl = document.querySelector('.btn-search');
 
 async function performSearch() {
@@ -2183,7 +2147,19 @@ function getLocation() {
 
 function locateUser() { getLocation(); }
 
-/* ---------- 12. AI PLANNER ---------- */
+/* ---------- 12. AI PLANNER (Grok auto-open) ---------- */
+function fallbackCopyTextToClipboard(text) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.opacity = "0";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try { document.execCommand('copy'); } catch (err) { console.error('Fallback copy failed', err); }
+    document.body.removeChild(textArea);
+}
+
 async function generateAIPrompt() {
     const startDate = document.getElementById('ai-start-date').value;
     const days = document.getElementById('ai-days').value;
@@ -2196,6 +2172,7 @@ async function generateAIPrompt() {
     btn.disabled = true;
     lucide.createIcons();
 
+    // Reverse geocoding
     let locationStr = `${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}`;
     const geoKey = `rev_${center.lat.toFixed(4)}_${center.lng.toFixed(4)}`;
     const cachedGeo = cacheGet(geoKey, GEOCODE_TTL);
@@ -2209,9 +2186,10 @@ async function generateAIPrompt() {
                 locationStr = data.display_name;
                 cacheSet(geoKey, locationStr);
             }
-        } catch (e) { /* fallback to coords */ }
+        } catch (e) { }
     }
 
+    // Build prompt
     let prompt = `Act as an expert outdoor travel planner and adventure guide.\n\n`;
     prompt += `Create a detailed, day-by-day itinerary for a ${days}-day trip starting ${startDate || 'an upcoming date'}.\n`;
     prompt += `Location: Near ${locationStr}.\n`;
@@ -2224,6 +2202,24 @@ async function generateAIPrompt() {
     prompt += `- Provide alternatives for bad weather.\n`;
     prompt += `- Format output in clean Markdown.`;
 
+    // Copy + open Grok
+    let copySuccess = false;
+    try {
+        await navigator.clipboard.writeText(prompt);
+        copySuccess = true;
+    } catch (e) {
+        fallbackCopyTextToClipboard(prompt);
+        copySuccess = true;
+    }
+
+    if (copySuccess) {
+        showToast('Prompt copied! Opening Grok — just paste (Ctrl+V).', 'success', 3000);
+        window.open('https://grok.com', '_blank');
+    } else {
+        showToast('Could not copy automatically. Please copy manually from the box below.', 'warning', 4000);
+    }
+
+    // Show prompt in UI
     document.getElementById('ai-prompt-text').value = prompt;
     const out = document.getElementById('ai-output');
     out.style.display = 'block';
@@ -2325,7 +2321,7 @@ async function downloadOfflineGuide() {
     showToast('Offline guide downloaded', 'success');
 }
 
-/* ---------- 14. MODAL & DETAIL VIEWS ---------- */
+/* ---------- 14. MODAL & DETAIL ---------- */
 function openModal(title, bodyHtml) {
     document.getElementById('modal-title-text').textContent = title;
     document.getElementById('modal-body').innerHTML = bodyHtml;
@@ -2463,10 +2459,8 @@ function setTravelMode(el) {
     el.setAttribute('aria-pressed', 'true');
     currentTravelMode = el.getAttribute('data-mode');
     showToast('Travel mode: ' + TRAVEL_MODES[currentTravelMode].label, 'info');
-    // Re-fetch POIs with new mode
     const c = map.getCenter();
     fetchNearbyPlaces(c.lat, c.lng);
-    // Optionally switch route layer
     const targetLayer = TRAVEL_MODES[currentTravelMode].routeLayer;
     if (targetLayer) {
         const pill = document.querySelector(`#route-pills .pill-toggle[data-layer="${targetLayer}"]`);
@@ -2503,7 +2497,7 @@ function attachKeyboardHandlers(root) {
 const radiusSlider = document.getElementById('radius-slider');
 const radiusVal = document.getElementById('radius-val');
 radiusSlider.addEventListener('input', () => {
-    radiusVal.textContent = radiusSlider.value="15" + ' km';
+    radiusVal.textContent = radiusSlider.value + ' km';
 });
 radiusSlider.addEventListener('change', debounce(() => {
     const c = map.getCenter();
@@ -2515,15 +2509,13 @@ loadShortlist();
 renderShortlist();
 attachKeyboardHandlers();
 
-// Throttled POI refresh on map move
 map.on('moveend', throttle(() => {
-    // Only auto-refresh if user has moved significantly - for now, do nothing automatic
-    // to avoid overwhelming Overpass. Manual refresh available via search.
+    // Placeholder for future auto-refresh
 }, 3000));
 
 // Boot data
 fetchWeather(defaultLat, defaultLon);
-// fetchNearbyPlaces(defaultLat, defaultLon);
+fetchNearbyPlaces(defaultLat, defaultLon);
 
 /* ---------- 17. PWA ---------- */
 const manifest = {
