@@ -1333,7 +1333,7 @@
                 
                 <div class="ai-footer">
                     <i data-lucide="bot" aria-hidden="true"></i>
-                    Ctrl V to paste into Grok to create a suggested AI Itinerary for you
+                    Generates AI Itinerary for ChatGPT,<br>Copilot and DeepSeek
                 </div>
                 
                 <div class="ai-output" id="ai-output">
@@ -1758,7 +1758,9 @@ function scrollToShortlist() {
 }
 
 /* ---------- 6. WHAT3WORDS ---------- */
-let w3wApiKey = localStorage.getItem('ge_w3w_key') || '';
+// Default API key — can be overridden in Settings
+const DEFAULT_W3W_KEY = '08Z3AD00';
+let w3wApiKey = localStorage.getItem('ge_w3w_key') || DEFAULT_W3W_KEY;
 let showCoords = localStorage.getItem('ge_show_coords') !== 'false';
 let showW3W = localStorage.getItem('ge_show_w3w') !== 'false';
 
@@ -1768,14 +1770,23 @@ async function getW3W(lat, lon) {
     const cached = cacheGet(cacheKey, W3W_TTL);
     if (cached) return cached;
     try {
-        const res = await fetch(`https://api.what3words.com/v3/convert-to3word?coordinates=${lat},${lon}&key=${encodeURIComponent(w3wApiKey)}`);
-        if (!res.ok) return null;
+        const url = `https://api.what3words.com/v3/convert-to3word?coordinates=${lat},${lon}&key=${encodeURIComponent(w3wApiKey)}`;
+        const res = await fetch(url);
+        if (!res.ok) {
+            console.warn('w3w HTTP error:', res.status);
+            return null;
+        }
         const data = await res.json();
         if (data && data.words) {
             cacheSet(cacheKey, data.words);
             return data.words;
         }
-    } catch (e) { console.warn('w3w lookup failed', e); }
+        if (data && data.error) {
+            console.warn('w3w API error:', data.error);
+        }
+    } catch (e) {
+        console.warn('w3w lookup failed', e);
+    }
     return null;
 }
 
@@ -2055,7 +2066,7 @@ async function lookupW3W(lat, lon, el) {
         el.onclick = () => copyText(formatW3W(words), 'what3words');
         showToast('Tap again to copy', 'info');
     } else {
-        el.textContent = 'Unavailable (set w3w key in settings)';
+        el.textContent = 'Address unavailable — check API key in Settings';
         el.style.color = 'var(--text-muted)';
     }
 }
@@ -2172,7 +2183,6 @@ async function generateAIPrompt() {
     btn.disabled = true;
     lucide.createIcons();
 
-    // Reverse geocoding
     let locationStr = `${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}`;
     const geoKey = `rev_${center.lat.toFixed(4)}_${center.lng.toFixed(4)}`;
     const cachedGeo = cacheGet(geoKey, GEOCODE_TTL);
@@ -2189,7 +2199,6 @@ async function generateAIPrompt() {
         } catch (e) { }
     }
 
-    // Build prompt
     let prompt = `Act as an expert outdoor travel planner and adventure guide.\n\n`;
     prompt += `Create a detailed, day-by-day itinerary for a ${days}-day trip starting ${startDate || 'an upcoming date'}.\n`;
     prompt += `Location: Near ${locationStr}.\n`;
@@ -2202,7 +2211,6 @@ async function generateAIPrompt() {
     prompt += `- Provide alternatives for bad weather.\n`;
     prompt += `- Format output in clean Markdown.`;
 
-    // Copy + open Grok
     let copySuccess = false;
     try {
         await navigator.clipboard.writeText(prompt);
@@ -2219,7 +2227,6 @@ async function generateAIPrompt() {
         showToast('Could not copy automatically. Please copy manually from the box below.', 'warning', 4000);
     }
 
-    // Show prompt in UI
     document.getElementById('ai-prompt-text').value = prompt;
     const out = document.getElementById('ai-output');
     out.style.display = 'block';
@@ -2339,8 +2346,9 @@ function openSettings() {
         <div class="modal-section">
             <div class="modal-section-title">what3words API</div>
             <div class="modal-help">
-                Get a free key at <a href="https://what3words.com/select-plan" target="_blank" rel="noopener">what3words.com</a>.
-                Without a key, coordinates will be shown instead.
+                A default key is configured. You can replace it with your own from
+                <a href="https://what3words.com/select-plan" target="_blank" rel="noopener">what3words.com</a>.
+                Leave blank to fall back to coordinates only.
             </div>
             <input type="text" class="modal-input" id="settings-w3w-key" placeholder="Your what3words API key" value="${escapeAttr(w3wApiKey)}">
         </div>
@@ -2352,7 +2360,7 @@ function openSettings() {
             </label>
             <label class="modal-checkbox">
                 <input type="checkbox" id="settings-show-w3w" ${showW3W ? 'checked' : ''}>
-                Show what3words (requires API key)
+                Show what3words
             </label>
         </div>
         <div class="modal-actions">
@@ -2370,7 +2378,11 @@ function saveSettings() {
     w3wApiKey = key;
     showCoords = document.getElementById('settings-show-coords').checked;
     showW3W = document.getElementById('settings-show-w3w').checked;
-    localStorage.setItem('ge_w3w_key', w3wApiKey);
+    if (w3wApiKey) {
+        localStorage.setItem('ge_w3w_key', w3wApiKey);
+    } else {
+        localStorage.removeItem('ge_w3w_key');
+    }
     localStorage.setItem('ge_show_coords', String(showCoords));
     localStorage.setItem('ge_show_w3w', String(showW3W));
     closeModal();
